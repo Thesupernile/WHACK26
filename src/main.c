@@ -12,8 +12,8 @@ enum DIMENSION {TWO = 2, THREE = 3};
 #include "rlights.h"
 
 // Set to 1 to keep the point light on the camera (fog and lighting then agree),
-// 0 to leave it fixed in the world at its starting position.
-#define LIGHT_FOLLOWS_CAMERA 1
+// 0 to leave it fixed in the world at its starting position when not in 2D.
+#define LIGHT_ALWAYS_FOLLOWS_CAMERA 0
 
 RayCollision GetRayCollisionModel(Ray ray, Model model, Vector3 position)
 {
@@ -52,12 +52,14 @@ int printLocation(Vector3 position) {
 
 int main(void)
 {
+    const Color skyColour = (Color){102, 191, 255, 255};
+    const Vector4 skyColourVec = {102, 191, 255, 255};
     bool isHyperbolic = false;
     const float MAP_BOUNDS = 50.0f;
     const int zero = 0;
     const int one = 1;
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-    InitWindow(1000, 800, "DEBBelobers");
+    InitWindow(1000, 800, "Hello Raylib");
     SearchAndSetResourceDir("src/resources");
 
 	// Dimensions Init
@@ -83,20 +85,22 @@ int main(void)
 
     // The shader divides this by 10 internally; lower it for darker distant areas
     int ambientLoc = GetShaderLocation(shader, "ambient");
-    SetShaderValue(shader, ambientLoc, (float[4]){ 0.0f, 0.0f, 0.0f, 1.0f }, SHADER_UNIFORM_VEC4);
+    SetShaderValue(shader, ambientLoc, (float[4]){ 0.1f, 0.1f, 0.1f, 1.0f }, SHADER_UNIFORM_VEC4);
 
-    float fadeDistance  = 80.0f;   // units until fully dark
-    float minBrightness = 0.05f;   // 0.0 = pure black at the limit
+    float fadeDistance  = 100.0f;   // units until fully fog
+    float maxFog = 0.5f;   // 1.0 = pure fog coloured at the limit
 
     int fadeDistanceLoc  = GetShaderLocation(shader, "fadeDistance");
     int minBrightnessLoc = GetShaderLocation(shader, "minBrightness");
+    int cameraFogColour = GetShaderLocation(shader, "fogColour");
 
     SetShaderValue(shader, fadeDistanceLoc,  &fadeDistance,  SHADER_UNIFORM_FLOAT);
-    SetShaderValue(shader, minBrightnessLoc, &minBrightness, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, minBrightnessLoc, &maxFog, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, cameraFogColour, &skyColourVec, SHADER_UNIFORM_VEC4);
 
     int cameraPosUniform = GetShaderLocation(shader, "cameraPos");
     int doHyperbolic = GetShaderLocation(shader, "doHyperbolic");
-    float pontiDiskRad = GetShaderLocation(shader, "pontiDiskRadSqrd");
+    int pontiDiskRad = GetShaderLocation(shader, "pontiDiskRadSqrd");
     float pontiDiskRadius = MAP_BOUNDS * MAP_BOUNDS;
     SetShaderValue(shader, doHyperbolic, &zero, SHADER_UNIFORM_INT);
     SetShaderValue(shader, pontiDiskRad, &pontiDiskRadius, SHADER_UNIFORM_FLOAT);
@@ -189,13 +193,34 @@ int main(void)
                 isHyperbolic = false;
             } else if (strcmp(dimensions[currentDimension], "2D") == 0) {
                 target = LoadRenderTexture(GetScreenWidth(),GetScreenHeight());
-                ClearBackground(SKYBLUE);
+                ClearBackground(skyColour);
                 isHyperbolic = false;
 
             } else if (strcmp(dimensions[currentDimension], "Hyperbolic") == 0){
                 isHyperbolic = true;
+
             }
         }
+
+	    if (IsKeyPressed(KEY_O)) {
+            currentDimension = 1;
+            target = LoadRenderTexture(GetScreenWidth(),GetScreenHeight());
+            ClearBackground(skyColour);
+            isHyperbolic = false;
+        }
+
+	    if (IsKeyPressed(KEY_I)) {
+            currentDimension = 0;
+            UnloadRenderTexture(target);
+            isHyperbolic = false;
+        }
+
+	    if (IsKeyPressed(KEY_P)) {
+            currentDimension = 2;
+            UnloadRenderTexture(target);
+            isHyperbolic = true;
+        }
+
 
         if (IsKeyPressed(KEY_R)) {
             Matrix currentViewMat = GetCameraMatrix(camera);
@@ -234,8 +259,15 @@ int main(void)
             );
         }
 
-        #if LIGHT_FOLLOWS_CAMERA
+        #if LIGHT_ALWAYS_FOLLOWS_CAMERA
+            lights[0].position = camera.position;
+        #else
+            if (strcmp(dimensions[currentDimension], "2D") == 0){
                 lights[0].position = camera.position;
+            }
+            else{
+                lights[0].position = (Vector3){25.0f, 25.0f, 25.0f};
+            }
         #endif
 
         if (isHyperbolic){
@@ -256,7 +288,7 @@ int main(void)
 			BeginDrawing();
 			BeginTextureMode(target);
 		}
-        ClearBackground(SKYBLUE);
+        ClearBackground(skyColour);
         BeginMode3D(camera);
 		
 		

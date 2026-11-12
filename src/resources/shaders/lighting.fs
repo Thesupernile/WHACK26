@@ -24,6 +24,7 @@ struct Light {
 
 uniform Light lights[MAX_LIGHTS];
 uniform vec4 ambient;
+uniform vec4 fogColor;
 uniform vec3 viewPos;
 
 // Distance darkening
@@ -40,7 +41,7 @@ void main()
     // Normals from screen-space derivatives: works even if the GLB has none.
     // Gives a faceted look. Swap to normalize(fragNormal) if your mesh has good normals.
     vec3 normal = normalize(cross(dFdx(fragPosition), dFdy(fragPosition)));
-    normal = faceforward(normal, -viewD, normal);   // always face the camera
+    //normal = faceforward(normal, -viewD, normal);   // always face the camera
 
     vec3 lightDot = vec3(0.0);
     vec3 specular = vec3(0.0);
@@ -73,8 +74,13 @@ void main()
     // Gamma correction
     finalColor = pow(finalColor, vec4(1.0 / 2.2));
 
-    // Distance darkening, applied last so it affects every object
+    // Distance fog, applied last so it affects every object
     float dist = length(viewPos - fragPosition);
-    float brightness = clamp(1.0 - dist / fadeDistance, minBrightness, 1.0);
-    finalColor.rgb *= brightness;
+    vec4 fogColourDiff = fogColor - finalColor;
+    float magnitude = clamp(dist / fadeDistance, minBrightness, 1.0);
+    fogColourDiff *= magnitude;
+    fogColourDiff.a = 1.0f;
+    vec4 tempFinalColor = finalColor + fogColourDiff;
+    finalColor = tempFinalColor;
+
 }

@@ -60,13 +60,3 @@ If time allows, we might explore representing other forms of dimensional space t
 - **BWatters53**
 
 *(Reverse alphabetical order, because why not.)*
-
-## 💻Demo Images
-
-*If You Can't Get Our Project Running, Look Here!*
-
-![2D Demo Image](demoImages/2DShapes.png "Our 2D World")
-
-![3D Demo Image](demoImages/3DShapes.png "Our 3D World")
-
-![Hyperbolic Demo Image](demoImages/HyperbolicShapes.png "Our Hyperbolic World")
